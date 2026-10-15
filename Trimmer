@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>16:9 Photo Trimmer</title>
+    <!-- LINE LIFF SDKの読み込み -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .upload-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .upload-btn {
+            background-color: #06C755;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: bold;
+            display: inline-block;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(6, 199, 85, 0.3);
+        }
+        .preview-container {
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-top: 20px;
+            display: none;
+        }
+        .preview-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .action-btn {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            cursor: pointer;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>16:9 自動トリミングツール</h1>
+
+    <div class="upload-container">
+        <label class="upload-btn">
+            写真を選ぶ
+            <input type="file" id="imageInput" accept="image/*">
+        </label>
+    </div>
+
+    <div class="preview-container" id="previewContainer">
+        <p><strong>トリミング結果（16:9）</strong></p>
+        <img id="resultImage" alt="Preview">
+        <a id="downloadLink" download="trimmed_16_9.jpg" style="display:none;"></a>
+        <button class="action-btn" id="downloadBtn">画像を端末に保存する</button>
+    </div>
+
+    <script>
+        // ★ 取得したご自身のLIFF IDに書き換えてください
+        const LIFF_ID = "YOUR_LIFF_ID_HERE";
+
+        window.onload = function() {
+            initializeLiff();
+            document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        };
+
+        function initializeLiff() {
+            liff.init({ liffId: LIFF_ID })
+                .then(() => {
+                    if (!liff.isInClient()) {
+                        console.log("外部ブラウザで実行中");
+                    }
+                })
+                .catch((err) => {
+                    console.error("LIFFの初期化に失敗しました", err);
+                });
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    cropTo16_9(img);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function cropTo16_9(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const targetAspect = 16 / 9;
+            const imgWidth = img.width;
+            const imgHeight = img.height;
+            const imgAspect = imgWidth / imgHeight;
+
+            let sourceX = 0, sourceY = 0, sourceWidth = imgWidth, sourceHeight = imgHeight;
+
+            // 中央基準で16:9にクロップするための計算
+            if (imgAspect > targetAspect) {
+                // 画像が横長すぎる場合：左右を削る
+                sourceWidth = imgHeight * targetAspect;
+                sourceX = (imgWidth - sourceWidth) / 2;
+            } else {
+                // 画像が縦長すぎる場合：上下を削る
+                sourceHeight = imgWidth / targetAspect;
+                sourceY = (imgHeight - sourceHeight) / 2;
+            }
+
+            // 出力解像度（必要に応じて調整してください。例: 横幅1280px固定）
+            canvas.width = 1280;
+            canvas.height = 720;
+
+            // Canvasに描画（中央クロップ＆リサイズ）
+            ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+
+            // プレビュー表示
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const resultImage = document.getElementById('resultImage');
+            resultImage.src = dataUrl;
+
+            document.getElementById('previewContainer').style.display = 'block';
+
+            // ダウンロードボタンの設定
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = dataUrl;
+
+            document.getElementById('downloadBtn').onclick = function() {
+                downloadLink.click();
+            };
+        }
+    </script>
+</body>
+</html>
