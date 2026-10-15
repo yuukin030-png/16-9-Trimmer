@@ -86,7 +86,7 @@
 
     <script>
         // ★ 取得したご自身のLIFF IDに書き換えてください
-        const LIFF_ID = "YOUR_LIFF_ID_HERE";
+        const LIFF_ID = "2012039943-XGQh6FcA";
 
         window.onload = function() {
             initializeLiff();
